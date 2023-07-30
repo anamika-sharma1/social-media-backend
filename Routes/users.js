@@ -9,9 +9,10 @@ const {
   getFriends,
   getFollowers,
 } = require("../controllers/users");
+const validateFunction = require("../validate");
 
-router.route("/update/:id").put(updateUser);
-router.route("/delete/:id").delete(deleteUser);
+router.route("/update").put(validateFunction, updateUser);
+router.route("/delete").delete(validateFunction, deleteUser);
 router.route("/get").get(getUser);
 router.route("/follow/:id").put(followUser);
 router.route("/unfollow/:id").put(unfollowUser);

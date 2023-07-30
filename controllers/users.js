@@ -2,44 +2,47 @@ const Users = require("../models/userSchema");
 const bcrypt = require("bcrypt");
 
 const updateUser = async (req, res) => {
-  if (req.body.userId === req.params.id || req.body.isAdmin) {
-    if (req.body.password) {
-      try {
-        const salt = await bcrypt.genSalt(10);
-        req.body.password = await bcrypt.hash(req.body.password, salt);
-      } catch (error) {
-        return res.status(500).json({ message: error.message });
-      }
-    }
+  // console.log("inupdate");
+  if (req.body.password) {
     try {
-      const updatedUser = await Users.findByIdAndUpdate(req.params.id, {
-        $set: req.body,
-      });
-      return res.status(200).json({ message: "Account updated successfully" });
+      const salt = await bcrypt.genSalt(10);
+      req.body.password = await bcrypt.hash(req.body.password, salt);
     } catch (error) {
       return res.status(500).json({ message: error.message });
     }
-  } else {
-    return res
-      .status(403)
-      .json({ message: "You cannot update another user's profile." });
+  }
+  try {
+    const user = await Users.findOne({ username: req.body.username });
+    // console.log(user);
+    if (user._id.toString() === req.user.userId) {
+      const updatedUser = await Users.findByIdAndUpdate(user._id, {
+        $set: req.body,
+      });
+      return res.status(200).json({ message: "Account updated successfully" });
+    } else {
+      return res.status(403).json("You cannot update this user");
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
   }
 };
 
 const deleteUser = async (req, res) => {
-  if (req.body.userId === req.params.id || req.body.isAdmin) {
-    try {
-      const deletedUser = await Users.findByIdAndDelete(req.params.id);
+  try {
+    const user = await Users.findOne({ username: req.body.username });
+    if (user._id.toString() === req.user.userId) {
+      const deletedUser = await Users.findByIdAndDelete(user._id);
       return res.status(200).json({ message: deleteUser });
-    } catch (error) {
-      return res.status(500).json({ message: "Deleted Successfully" });
+    } else {
+      return res.status(403).json("You cannot delete this user");
     }
-  } else {
-    return res.status(403).json({ message: "You cannot delete another user" });
+  } catch (error) {
+    return res.status(500).json({ message: "Deleted Successfully" });
   }
 };
 
 const getUser = async (req, res) => {
+  // console.log("oo");
   const username = req.query.username;
   const userId = req.query.userId;
   try {

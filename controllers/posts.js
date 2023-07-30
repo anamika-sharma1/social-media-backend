@@ -47,11 +47,16 @@ const getPost = async (req, res) => {
 };
 
 const createPost = async (req, res) => {
+  // console.log("in");
   const body = req.body;
   try {
-    const post = new Posts(body);
-    await post.save();
-    return res.status(200).json({ message: post });
+    if (req.body.userId === req.user.userId) {
+      const post = new Posts(body);
+      await post.save();
+      return res.status(200).json({ message: post });
+    } else {
+      return res.status(401).json("You cannot create this post");
+    }
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -59,11 +64,9 @@ const createPost = async (req, res) => {
 
 const deletePost = async (req, res) => {
   const postId = req.params.id;
-  const userId = req.body.userId;
-  const body = req.body;
   try {
     const post = await Posts.findById(postId);
-    if (post.userId === userId) {
+    if (post.userId === req.user.userId) {
       await post.deleteOne();
       return res.status(200).json({ message: "Deleted Successfully" });
     } else {
@@ -75,12 +78,12 @@ const deletePost = async (req, res) => {
 };
 
 const updatePost = async (req, res) => {
+  // console.log("in");
   const postId = req.params.id;
-  const userId = req.body.userId;
   const body = req.body;
   try {
     const post = await Posts.findById(postId);
-    if (post.userId === userId) {
+    if (post.userId === req.user.userId) {
       await post.updateOne({ $set: body });
       return res.status(200).json({ message: "Updated Successfully" });
     } else {
@@ -92,20 +95,27 @@ const updatePost = async (req, res) => {
 };
 
 const like_dislike_Post = async (req, res) => {
+  // console.log("in");
   const postId = req.params.id;
   const userId = req.body.userId;
   try {
-    const post = await Posts.findById(postId);
-    if (post) {
-      if (post.likes.includes(userId)) {
-        await post.updateOne({ $pull: { likes: userId } });
-        return res.status(200).json({ message: "Post Disliked" });
+    if (userId === req.user.userId) {
+      const post = await Posts.findById(postId);
+      if (post) {
+        if (post.likes.includes(userId)) {
+          await post.updateOne({ $pull: { likes: userId } });
+          return res.status(200).json({ message: "Post Disliked" });
+        } else {
+          await post.updateOne({ $push: { likes: userId } });
+          return res.status(200).json({ message: "Post Liked" });
+        }
       } else {
-        await post.updateOne({ $push: { likes: userId } });
-        return res.status(200).json({ message: "Post Liked" });
+        return res.status(404).json({ message: "Post is not found" });
       }
     } else {
-      return res.status(404).json({ message: "Post is not found" });
+      return res
+        .status(403)
+        .json({ message: "You cannot like/dislike this post!" });
     }
   } catch (error) {
     return res.status(500).json({ message: error.message });
